@@ -1,0 +1,11 @@
+[Unit]
+Description=CDS Event Relay from gRPC to Azure Event Hub
+
+[Service]
+WorkingDirectory=${CMAKE_INSTALL_FULL_DATADIR}/cds_relay
+ExecStart=/usr/bin/dotnet ${CMAKE_INSTALL_FULL_DATADIR}/cds_relay/cds_relay.dll
+Restart=always
+Environment=ASPNETCORE_ENVIRONMENT=Production
+
+[Install]
+WantedBy=multi-user.target

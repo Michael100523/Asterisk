@@ -1,0 +1,1 @@
+This is asterisk service of large calling system using TCP/IP protocal

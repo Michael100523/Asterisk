@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package cds;
+
+message CdsEvent {
+	string uci = 1;
+	bytes event = 2;
+}
+
+service Publisher {
+	rpc Publish(CdsEvent) returns (google.protobuf.Empty);
+}

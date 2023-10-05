@@ -1,0 +1,181 @@
+syntax = "proto3";
+package call_event.model;
+
+enum MediaType {
+    MEDIA_TYPE_AUDIO = 0;
+    MEDIA_TYPE_MSRP = 1;
+    MEDIA_TYPE_RTT = 2;
+}
+
+enum CallDirection {
+    CALL_DIRECTION_INCOMING = 0;
+    CALL_DIRECTION_OUTGOING = 1;
+}
+
+enum AbandonedType {
+    ABANDONED_TYPE_ASA = 0;                           // After supervision Abandoned
+    ABANDONED_TYPE_BSA = 1;                           // Before supervision Abandoned
+}
+
+enum RoutingDestinationType {
+    ROUTING_DESTINATION_TYPE_PRIVATE = 0;             // Private route toward an agent
+    ROUTING_DESTINATION_TYPE_RINGGROUP = 1;           // Ring group route
+}
+
+enum ConsultationType {
+    CONSULTATION_TYPE_BARGEIN = 0;                    // Barge in from another agent
+    CONSULTATION_TYPE_TRANSFER = 1;                   // Call transfer from agent
+    CONSULTATION_TYPE_NOHOLDCONF = 2;                 // No hold conference
+}
+
+enum OutgoingResult {
+    OUTGOING_RESULT_FAILED = 0;                       // Generic outgoing failure 
+    OUTGOING_RESULT_ANSWER = 1;                       // Destination Answered, eg. 200 OK
+    OUTGOING_RESULT_BUSY = 2;                         // Destination Busy, eg. 486 Busy Here
+}
+
+// Sub-event for PSAP data
+message PsapData {
+    string psap_id=1;                                 // Id of the PSAP
+    string psap_name=2;                               // Name of the PSAP
+}
+
+// Sub-event for Agent data
+message AgentData {
+    string agent_uri=1;                               // URI of the agent
+    string agent_name=2;                              // Name of the agent
+    PsapData agent_psap=3;                            // PSAP on which agent is logged in
+}
+
+// Sub-event for Agency data
+message AgencyData {
+    string agency_id = 1;                             // Id of the agency
+    string agency_name = 2;                           // Name of the agency
+    string agency_type = 3;                           // Type of the agency
+    string agency_type_id = 4;                        // Type Id of the agency
+}
+
+// Sub-event for Routing data
+message RoutingData {
+    RoutingDestinationType destination_type = 1;      // Routing Destination type
+       string destination_name = 2;             // Routing Destination Name (For ring group routing)
+       AgentData agent_data = 3;                // Agent data (For private agent routing)
+}
+
+// Sub-event for SIP call information
+message SipCallData {
+    string sip_call_id = 1;                           // From INVITE Call-ID header
+    string from = 2;                                  // From INVITE From header
+    string contact = 3;                               // From INVITE Contact header
+    string asserted_identity = 4;                     // From INVITE P-Asserted-Identity    
+    string history_info = 5;                          // From INVITE History-Info header
+    string identity = 6;                              // From INVITE Identity header
+    repeated MediaType media_types = 7;               // Media type from INVITE SDP  
+}
+
+// Sub-event for Emergency call information
+message EmergencyCallData {
+    string emergency_call_id = 1;                     // From INVITE Call-Info header with purpose nena-CallId or emergency-CallId
+    string emergency_incident_id = 2;                 // From INVITE Call-Info nena-IncidentId or emergency-IncidentId
+    string emergency_queue_id = 3;
+       string geolocation_uri = 4;              // URI from INVITE Geolocation header
+       string pidflo_value = 5;                 // PIDF-LO XML from INVITE body referenced in Geolocation header
+    repeated string emergency_call_data_uris = 6;     // URIs from INVITE Call-Info headers with purpose EmergencyCallData.xxx
+    repeated string emergency_call_data_values = 7;   // XMLs from INVITE bodies referenced in Call-Info headers with purpose EmergencyCallData.xxx
+}
+
+// Sub-event for outgoing call information
+message OutgoingCallData {
+    string destination_uri = 1;                       // URI of the destination
+       AgentData agent_data = 2;                // Agent data for the Agent that initiated the call or that get called
+       AgencyData agency_data = 3;              // Data about the Agency we are calling
+}
+
+// Event generated on incoming or outgoing call that are not associated with any other call
+message CallStart {
+    string uci = 1;                                       // Unique Call Identifier created by Media Server
+    string psap_id = 2;                                   // Id of the PSAP as per NENA
+    CallDirection call_direction = 3;                     // Direction of the Call
+    SipCallData sip_call_data = 4;                        // Data related to the SIP call
+    EmergencyCallData emergency_call_data = 5;   // Data specific for 911 call
+    OutgoingCallData outgoing_call_data = 6;     // Data specific for outgoing call
+}
+
+// Event generated when all call legs associated with a call are over
+message CallEnd {
+    string uci = 1;                                   // Unique Call Identifier from the base call
+}
+
+// Event generated when incoming call as been connected to RAN
+message CallRanStart {
+    string uci = 1;                                   // Unique Call Identifier from the base call
+}
+
+// Event for routing indication on incoming call
+message CallRouting {
+    string uci = 1;                                   // Unique Call Identifier created by Media Server
+    RoutingData routing_data = 2;                     // Routing data
+}
+
+// Event for incoming call that fail to be answered before route timeout
+message CallRouteTimeout {
+    string uci = 1;                                   // Unique Call Identifier created by Media Server
+    RoutingData routing_data = 2;                     // Routing data
+}
+
+// Event when a consultation call get added to the original call
+message CallAddCallLeg {
+    string uci = 1;                                   // Unique Call Identifier from the base call
+    ConsultationType consultation_type = 2;           // Consultation type that added the call
+    SipCallData sip_call_data = 3;                    // Data related to the SIP call
+       OutgoingCallData outgoing_call_data = 4; // Data specific for outgoing consultation call
+}
+
+// Event when an outgoing call leg is answered or failed to answer
+message CallOutgoingResult {
+    string uci = 1;                                   // Unique Call Identifier from the base call
+    OutgoingResult outgoing_result = 2;               // Call outgoing result
+       OutgoingCallData outgoing_call_data = 3; // Data specific for outgoing call (base or consultation)
+}
+
+// Event when an additional call leg get released
+message CallReleased {
+    string uci = 1;                                   // Unique Call Identifier from the base call
+       OutgoingCallData outgoing_call_data = 2; // Data specific for outgoing consultation call
+}
+
+// Event when base call has been released by caller
+message CallAbandoned {
+    string uci = 1;                                   // Unique Call Identifier from the base call
+    AbandonedType abandoned_type = 2;                 // Abandoned Type
+    string reason = 3;                                // Reason
+}
+
+// Event when call is put on Hold by an agent
+message CallHold {
+    string uci = 1;                                   // Unique Call Identifier from the base call
+    AgentData agent_data = 2;                         // Agent data from the agent that performed the hold action
+}
+
+// Event when call is removed from Hold by an agent
+message CallUnhold {
+    string uci = 1;                                   // Unique Call Identifier from the base call
+    AgentData agent_data = 2;                         // Agent data from the agent that performed the unhold action
+}
+
+message CallEvent {
+    int64 timestamp = 1;
+    oneof event_data {
+        CallStart start = 2;
+        CallEnd end = 3;
+        CallRanStart ran_start = 4;
+        CallRouting routing = 5;
+        CallRouteTimeout route_timeout = 6;
+        CallAddCallLeg add_call_leg = 7;
+        CallOutgoingResult outgoing_result = 8;
+        CallReleased released = 9;
+        CallAbandoned abandoned = 10;
+        CallHold hold = 11;
+        CallUnhold unhold = 12;
+    }
+}

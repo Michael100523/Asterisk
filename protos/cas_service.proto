@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package cas;
+
+message AddCallReq {
+	string call_id = 1;
+	string psap_id = 2;
+	string media_server = 3;
+}
+
+
+message RoutingReq {
+	string call_id = 1;
+}
+
+message RouteReject {
+	string sip_code = 1;
+	string sip_reason = 2;
+}
+
+message RouteRingGroup {
+	string rg_id = 1;
+	repeated string uris = 2;
+}
+
+message RoutingRes {
+	oneof route {
+		RouteReject reject = 1;
+		RouteRingGroup ring_group = 2;
+	}
+}
+
+
+service CallApplicationService {
+	rpc AddCall(AddCallReq) returns (google.protobuf.Empty);
+	rpc GetRouting(RoutingReq) returns (RoutingRes);
+}

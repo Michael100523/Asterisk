@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package cms;
+
+message EsinetReferReq {
+	string call_id = 1;
+	string target_uri = 2;
+}
+
+message EsinetReferRes {
+	string sip_code = 1;
+}
+
+service CallMediaService {
+	rpc EsinetRefer(EsinetReferReq) returns (EsinetReferRes);
+}
